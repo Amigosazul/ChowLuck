@@ -1,0 +1,30 @@
+/* 同桌 panel: both people's lots for today, side by side */
+.table { width: 100%; max-width: 760px; border: 1px solid var(--line); border-radius: 4px; background: linear-gradient(180deg, rgba(31, 23, 18, .9), rgba(23, 17, 14, .9)); }
+.table-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.table-head h3 { margin: 0; font-size: 15px; font-weight: 900; letter-spacing: .3em; }
+.verdict { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; letter-spacing: .14em; color: var(--muted); }
+.verdict b { color: var(--gold-hi); font-weight: 900; letter-spacing: .2em; }
+.verdict.settled b { font-size: 16px; }
+.seats { display: grid; grid-template-columns: 1fr 1fr; }
+.seat { padding: 14px 18px 16px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.seat + .seat { border-left: 1px solid var(--line); }
+@media (max-width: 560px) {
+  .seats { grid-template-columns: 1fr; }
+  .seat + .seat { border-left: 0; border-top: 1px solid var(--line); }
+}
+.seat-name { display: flex; align-items: baseline; gap: 8px; font-size: 14px; font-weight: 600; letter-spacing: .18em; }
+.seat-name small { font-size: 11px; color: var(--muted); letter-spacing: .1em; font-weight: 400; }
+.seat-pick { font-size: 13px; letter-spacing: .12em; color: var(--muted); }
+.seat-pick b { color: var(--ink); font-weight: 600; }
+.minis { display: flex; gap: 6px; flex-wrap: wrap; }
+.mini {
+  width: 34px; height: 46px; display: grid; place-items: center; border-radius: 3px; border: 1px solid; cursor: pointer; padding: 0;
+  font-family: var(--f-brush); font-size: 20px; line-height: 1; transition: transform .2s;
+}
+.mini:hover { transform: translateY(-3px); }
+.mini.N { background: #f2ebdf; color: #261d16; border-color: #d9cdb6; }
+.mini.R { background: #eef0ef; color: #1d2226; border-color: #b9c1c7; }
+.mini.SR { background: #16302f; color: var(--gold-hi); border-color: var(--gold); }
+.mini.SSR { background: #1a0f0a; color: var(--gold-hi); border-color: var(--gold-hi); box-shadow: 0 0 10px rgba(246, 224, 166, .35); }
+.mini.picked { outline: 2px solid var(--cinnabar); outline-offset: 2px; }
+.seat-empty { font-size: 13px; color: var(--muted); letter-spacing: .1em; line-height: 1.7; }

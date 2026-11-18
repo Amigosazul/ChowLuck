@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0b09">
+  <meta name="description" content="两个人一起撕包抽签，决定今天吃什么。">
+  <title>饭运抽卡</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/serif-core.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/brush-core.woff2" as="font" type="font/woff2" crossorigin>
+</head>
+<body>
+  <div class="app">
+    <header class="top">
+      <div class="brand">
+        <span class="seal" aria-hidden="true">飯</span>
+        <div class="brand-text"><b>饭运</b><small id="today">今日食签</small></div>
+      </div>
+      <nav class="top-actions" aria-label="功能">
+        <button class="btn" id="mateBtn" type="button">同桌</button>
+        <button class="btn" id="poolBtn" type="button">菜单<span class="num" id="poolN">0</span></button>
+        <button class="btn" id="historyBtn" type="button">记录</button>
+        <button class="btn" id="soundBtn" type="button" aria-pressed="true">声 开</button>
+      </nav>
+    </header>
+
+    <main class="main">
+      <div class="stage" id="stage">
+        <div class="halo" id="halo"></div>
+        <div class="pack-wrap" id="packWrap"></div>
+        <div class="stack" id="stack"></div>
+      </div>
+      <section class="results" id="results" hidden>
+        <div class="res-head">
+          <p class="eyebrow" id="resEyebrow">五签已出</p>
+          <h2 id="resTitle">今天吃哪一签</h2>
+          <span class="rule"></span>
+        </div>
+        <div class="fan" id="fan"></div>
+        <div class="res-actions">
+          <button class="btn primary" id="againBtn" type="button">再开一包</button>
+          <button class="btn" id="randBtn" type="button">替我选一签</button>
+        </div>
+        <section class="table" id="table" hidden></section>
+      </section>
+    </main>
+
+    <footer class="hud" id="hud">
+      <p id="hint">沿金色虚线，<b>向右撕开</b></p>
+      <div class="lots" id="lots" hidden></div>
+      <div class="hud-btns" id="hudBtns"></div>
+    </footer>
+  </div>
+
+  <div class="zoom" id="zoom" hidden>
+    <div class="zoom-stage" id="zoomStage"></div>
+    <div class="zoom-actions">
+      <button class="btn primary" id="pickBtn" type="button">定下这一签</button>
+      <button class="btn" id="zoomClose" type="button">再看看</button>
+    </div>
+  </div>
+
+  <div class="sheet-back" id="poolSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="poolTitle">
+      <header><h2 id="poolTitle">菜单</h2><span></span><button class="btn" type="button" data-close>完成</button></header>
+      <div class="sheet-body"></div>
+    </div>
+  </div>
+
+  <div class="sheet-back" id="roomSheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="roomTitle">
+      <header><h2 id="roomTitle">饭桌</h2><span></span><button class="btn" type="button" data-close>完成</button></header>
+      <div class="sheet-body"></div>
+    </div>
+  </div>
+
+  <div class="sheet-back" id="historySheet" hidden>
+    <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+      <header><h2 id="historyTitle">记录</h2><span></span><button class="btn" type="button" data-close>完成</button></header>
+      <div class="sheet-body"></div>
+    </div>
+  </div>
+
+  <script type="module" src="/src/client/main.ts"></script>
+</body>
+</html>

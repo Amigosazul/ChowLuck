@@ -1,0 +1,32 @@
+/* Design direction: a lacquered table under one warm lamp. Black lacquer and gold foil for
+   the pack and the rare lots, rice paper for the plain ones, cinnabar for seals.
+   Deliberately single-theme (dark), so every colour is set explicitly here. */
+:root {
+  --bg: #0f0b09;
+  --bg-glow: #2a1a11;
+  --ink: #efe6d6;
+  --muted: #9b8c79;
+  --line: rgba(226, 196, 140, .2);
+  --panel: #17110e;
+  --panel-2: #1f1712;
+  --gold: #d9b46a;
+  --gold-hi: #f6e0a6;
+  --gold-lo: #7e5b20;
+  --cinnabar: #b3291b;
+  --jade: #7fc2b8;
+  --foil-gold: linear-gradient(120deg, #6e4c16 0%, #d9b46a 16%, #fff1c2 28%, #b98a34 42%, #f6dc97 56%, #8a6526 70%, #e8c674 84%, #6e4c16 100%);
+  --foil-silver: linear-gradient(120deg, #5f666c 0%, #cfd6db 18%, #ffffff 30%, #8f989e 45%, #e9edf0 60%, #6f777d 76%, #d3d9dd 90%, #5f666c 100%);
+  --grain: none;
+
+  /* self-hosted subsets, see scripts/build-fonts.mjs; system fonts are the fallback */
+  --f-serif: 'ChowLuck Serif', 'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  --f-brush: 'ChowLuck Brush', 'Ma Shan Zheng', 'STKaiti', 'KaiTi', var(--f-serif);
+  --f-latin: 'ChowLuck Latin', 'Cormorant Garamond', Georgia, var(--f-serif);
+
+  /* pack width drives the whole stage */
+  --pw: min(300px, 72vw, calc((100dvh - 240px) / 1.62));
+  color-scheme: dark;
+}
+
+@property --mx { syntax: '<number>'; inherits: true; initial-value: 50; }
+@property --my { syntax: '<number>'; inherits: true; initial-value: 50; }
