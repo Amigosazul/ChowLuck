@@ -58,6 +58,7 @@ body::after {
 .btn.small { font-size: 12px; padding: 6px 10px 6px 12px; letter-spacing: .14em; }
 .btn .num { font-family: var(--f-latin); font-size: 15px; color: var(--gold); margin-left: 6px; letter-spacing: 0; }
 .mate { display: inline-flex; align-items: center; gap: 8px; }
+.mate .who { max-width: 5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mate .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); }
 .mate .dot.on { background: var(--jade); box-shadow: 0 0 8px var(--jade); }
 .mate .dot.wait { background: var(--gold); }

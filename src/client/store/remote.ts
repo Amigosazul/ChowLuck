@@ -24,6 +24,7 @@ export class RemoteStore implements Store {
   draw() { return this.call<DrawResult>('POST', '/api/draws'); }
   choose(dish: string) { return this.call<TableState>('PUT', '/api/choice', { dish }); }
   settle(dish: string) { return this.call<TableState>('PUT', '/api/final', { dish }); }
+  toss() { return this.call<TableState>('POST', '/api/toss'); }
   reopen() { return this.call<TableState>('DELETE', '/api/final'); }
   async removeMember(memberId: string) { await this.call('DELETE', `/api/members/${encodeURIComponent(memberId)}`); }
 

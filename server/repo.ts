@@ -197,11 +197,27 @@ export class Repo {
     });
   }
 
-  setFinal(auth: Auth, day: string, dish: string) {
+  setFinal(auth: Auth, day: string, dish: string, by: string = auth.memberId) {
     this.db.prepare(`
       INSERT INTO finals (room_id, day, dish, by, at) VALUES (?, ?, ?, ?, ?)
       ON CONFLICT (room_id, day) DO UPDATE SET dish = excluded.dish, by = excluded.by, at = excluded.at`)
-      .run(auth.roomId, day, dish, auth.memberId, Date.now());
+      .run(auth.roomId, day, dish, by, Date.now());
+  }
+
+  /** Picks one of the two differing choices at random and settles the day with it. */
+  toss(auth: Auth, day: string): string {
+    return this.tx(() => {
+      if (this.db.prepare('SELECT 1 FROM finals WHERE room_id = ? AND day = ?').get(auth.roomId, day)) {
+        throw new HttpError(409, '今天已经定案了');
+      }
+      const picks = this.choiceRows(auth.roomId, day);
+      if (this.members(auth.roomId).length < MAX_MEMBERS || picks.length < MAX_MEMBERS) {
+        throw new HttpError(409, '两个人都定签后才能掷签');
+      }
+      const dish = picks[randomInt(picks.length)].dish;
+      this.setFinal(auth, day, dish, 'toss');
+      return dish;
+    });
   }
 
   clearFinal(auth: Auth, day: string) {
@@ -210,15 +226,27 @@ export class Repo {
 
   state(auth: Auth, day: string): TableState {
     const members = this.members(auth.roomId);
+    const today = this.board(auth.roomId, day);
+    // blind picks: hide the partner's dish until I've picked too, or the day is settled
+    const pickedMyself = today.choices.some(c => c.memberId === auth.memberId);
+    if (!pickedMyself && !today.final) {
+      today.choices = today.choices.map(c =>
+        c.memberId === auth.memberId ? c : { memberId: c.memberId, dish: '', at: c.at, sealed: true });
+    }
     return {
       mode: 'room',
       room: { id: auth.roomId, code: auth.code },
       me: { id: auth.memberId, name: auth.name },
       members,
       pool: this.pool(auth.roomId),
-      today: this.board(auth.roomId, day),
+      today,
       history: this.history(auth.roomId, day)
     };
+  }
+
+  choiceRows(roomId: string, day: string): ChoiceRecord[] {
+    return (this.db.prepare('SELECT member_id, dish, at FROM choices WHERE room_id = ? AND day = ? ORDER BY at')
+      .all(roomId, day) as Row[]).map(r => ({ memberId: String(r.member_id), dish: String(r.dish), at: Number(r.at) }));
   }
 
   private board(roomId: string, day: string): DayBoard {
@@ -229,8 +257,7 @@ export class Repo {
       if (draws.some(d => d.memberId === r.member_id)) continue;
       draws.push({ memberId: String(r.member_id), cards: JSON.parse(String(r.cards)) as Dish[], at: Number(r.at) });
     }
-    const choices: ChoiceRecord[] = (this.db.prepare('SELECT member_id, dish, at FROM choices WHERE room_id = ? AND day = ?')
-      .all(roomId, day) as Row[]).map(r => ({ memberId: String(r.member_id), dish: String(r.dish), at: Number(r.at) }));
+    const choices = this.choiceRows(roomId, day);
     const f = this.db.prepare('SELECT dish, by, at FROM finals WHERE room_id = ? AND day = ?').get(roomId, day) as Row | undefined;
     const final: FinalRecord | null = f ? { dish: String(f.dish), by: String(f.by), at: Number(f.at) } : null;
     return { day, draws, choices, final };

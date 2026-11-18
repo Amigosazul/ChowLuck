@@ -37,13 +37,19 @@ export interface DrawRecord {
 
 export interface ChoiceRecord {
   memberId: string;
+  /** Empty while sealed. */
   dish: string;
   at: number;
+  /**
+   * Blind picks: the partner's dish stays hidden until you have picked too
+   * (or the day is settled). The server blanks `dish` and sets this flag.
+   */
+  sealed?: boolean;
 }
 
 export interface FinalRecord {
   dish: string;
-  /** Member id, or "match" when both picked the same dish. */
+  /** Member id, "match" when both picked the same dish, or "toss" when the server tossed between two picks. */
   by: string;
   at: number;
 }

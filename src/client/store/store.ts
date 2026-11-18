@@ -8,6 +8,8 @@ export interface Store {
   draw(): Promise<DrawResult>;
   choose(dish: string): Promise<TableState>;
   settle(dish: string): Promise<TableState>;
+  /** Let the server pick between two different blind picks. */
+  toss(): Promise<TableState>;
   reopen(): Promise<TableState>;
   removeMember(memberId: string): Promise<void>;
   /** Called with fresh state whenever someone else changes the table. */

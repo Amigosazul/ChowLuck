@@ -3,9 +3,10 @@ import { esc } from './dom.ts';
 
 export interface TableHandlers {
   pick(dish: string): void;
-  settle(dish: string): void;
+  toss(): void;
   reopen(): void;
   invite(): void;
+  replay(): void;
 }
 
 const timeText = (at: number) => {
@@ -22,13 +23,15 @@ export function verdict(s: TableState): { text: string; settled: boolean } {
   const partner = partnerOf(s);
   const mine = s.today.choices.find(c => c.memberId === s.me.id);
   const theirs = partner && s.today.choices.find(c => c.memberId === partner.id);
-  if (s.today.final) {
-    return { text: s.today.final.by === 'match' ? `心有灵犀 · ${s.today.final.dish}` : `今日定案 · ${s.today.final.dish}`, settled: true };
+  const f = s.today.final;
+  if (f) {
+    const how = f.by === 'match' ? '心有灵犀' : f.by === 'toss' ? '掷签' : '今日定案';
+    return { text: `${how} · ${f.dish}`, settled: true };
   }
   if (!partner) return { text: '等 TA 入座', settled: false };
   if (mine && theirs) return { text: '两签不同', settled: false };
-  if (mine) return { text: `等 ${partner.name} 定签`, settled: false };
-  if (theirs) return { text: `${partner.name} 已定签`, settled: false };
+  if (mine) return { text: `暗签已封 · 等 ${partner.name}`, settled: false };
+  if (theirs) return { text: `${partner.name} 已封签 · 等你`, settled: false };
   return { text: '都还没定', settled: false };
 }
 
@@ -41,13 +44,15 @@ function seatHTML(s: TableState, m: Member, isMe: boolean): string {
         `<button type="button" class="mini ${c.rarity}${pick?.dish === c.name ? ' picked' : ''}" data-pick="${esc(c.name)}"
           title="${esc(c.name)}" aria-label="${isMe ? '' : '我也选'}${esc(c.name)}">${esc(c.ch || Array.from(c.name)[0])}</button>`).join('')}</div>`
     : '';
-  const status = pick
+  const status = pick?.sealed
+    ? `<div class="seat-pick">${timeText(pick.at)} 已定签 · <b>暗签未开</b></div>`
+    : pick
     ? `<div class="seat-pick">定了 <b>${esc(pick.dish)}</b> · ${timeText(pick.at)}</div>`
     : draw
       ? `<div class="seat-pick">${timeText(draw.at)} 开了一包，还没定</div>`
       : `<div class="seat-empty">${isMe ? '你今天还没开包' : 'TA 今天还没开包'}</div>`;
   return `<div class="seat">
-    <div class="seat-name">${who}${isMe ? '' : `<small>${draw && !isMe ? '点签可以跟着选' : ''}</small>`}</div>
+    <div class="seat-name">${who}${isMe ? '' : `<small>${draw ? '点签可以选同一道' : ''}</small>`}</div>
     ${status}${minis}
   </div>`;
 }
@@ -63,9 +68,11 @@ export function renderTable(root: HTMLElement, s: TableState, h: TableHandlers) 
   const v = verdict(s);
   const mine = s.today.choices.find(c => c.memberId === s.me.id);
   const theirs = partner && s.today.choices.find(c => c.memberId === partner.id);
+  const bothOpen = !!(mine && theirs && !theirs.sealed);
   let action = '';
-  if (s.today.final) action = '<button type="button" class="btn small" data-act="reopen">重新商量</button>';
-  else if (mine && theirs && mine.dish !== theirs.dish) action = '<button type="button" class="btn small primary" data-act="toss">掷签决定</button>';
+  if (bothOpen) action += '<button type="button" class="btn small" data-act="replay">重看揭晓</button>';
+  if (s.today.final) action += '<button type="button" class="btn small" data-act="reopen">重新商量</button>';
+  else if (bothOpen && mine!.dish !== theirs!.dish) action += '<button type="button" class="btn small primary" data-act="toss">掷签决定</button>';
   else if (!partner) action = '<button type="button" class="btn small primary" data-act="invite">邀请 TA</button>';
 
   root.innerHTML = `
@@ -82,8 +89,6 @@ export function renderTable(root: HTMLElement, s: TableState, h: TableHandlers) 
     b.addEventListener('click', () => h.pick(b.dataset.pick!)));
   root.querySelector('[data-act="reopen"]')?.addEventListener('click', h.reopen);
   root.querySelector('[data-act="invite"]')?.addEventListener('click', h.invite);
-  root.querySelector('[data-act="toss"]')?.addEventListener('click', () => {
-    if (!mine || !theirs) return;
-    h.settle(Math.random() < 0.5 ? mine.dish : theirs.dish);
-  });
+  root.querySelector('[data-act="toss"]')?.addEventListener('click', h.toss);
+  root.querySelector('[data-act="replay"]')?.addEventListener('click', h.replay);
 }

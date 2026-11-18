@@ -101,3 +101,51 @@ describe('a shared day', () => {
     expect(st.history[0].choices[0].dish).toBe('卤肉饭');
   });
 });
+
+describe('blind picks', () => {
+  const pickOf = (st: TableState, name: string) => {
+    const m = st.members.find(x => x.name === name)!;
+    return st.today.choices.find(c => c.memberId === m.id);
+  };
+
+  it('keeps the partner’s pick sealed until you pick too', async () => {
+    const { a, b } = await pair();
+    await call('PUT', '/api/choice', { dish: '酸菜鱼' }, a);
+    let seenByB = (await call('GET', '/api/state', undefined, b)).json as TableState;
+    expect(pickOf(seenByB, '阿杰')).toMatchObject({ dish: '', sealed: true });
+    const seenByA = (await call('GET', '/api/state', undefined, a)).json as TableState;
+    expect(pickOf(seenByA, '阿杰')).toMatchObject({ dish: '酸菜鱼' });
+    expect(pickOf(seenByA, '阿杰')!.sealed).toBeUndefined();
+
+    seenByB = (await call('PUT', '/api/choice', { dish: '螺蛳粉' }, b)).json as TableState;
+    expect(pickOf(seenByB, '阿杰')).toMatchObject({ dish: '酸菜鱼' });
+    expect(pickOf(seenByB, '阿杰')!.sealed).toBeUndefined();
+  });
+
+  it('reveals everything once the day is settled', async () => {
+    const { a, b } = await pair();
+    await call('PUT', '/api/choice', { dish: '酸菜鱼' }, a);
+    await call('PUT', '/api/final', { dish: '酸菜鱼' }, a);
+    const seenByB = (await call('GET', '/api/state', undefined, b)).json as TableState;
+    expect(pickOf(seenByB, '阿杰')!.dish).toBe('酸菜鱼');
+  });
+
+  it('tosses between two different picks, once', async () => {
+    const { a, b } = await pair();
+    expect((await call('POST', '/api/toss', undefined, a)).status).toBe(409);
+    await call('PUT', '/api/choice', { dish: '酸菜鱼' }, a);
+    await call('PUT', '/api/choice', { dish: '螺蛳粉' }, b);
+    const st = (await call('POST', '/api/toss', undefined, b)).json as TableState;
+    expect(st.today.final?.by).toBe('toss');
+    expect(['酸菜鱼', '螺蛳粉']).toContain(st.today.final?.dish);
+    expect((await call('POST', '/api/toss', undefined, a)).status).toBe(409);
+  });
+
+  it('shows full picks in history', async () => {
+    const { a, b } = await pair();
+    await call('PUT', '/api/choice', { dish: '卤肉饭' }, a);
+    clock = new Date('2026-11-19T04:00:00Z');
+    const st = (await call('GET', '/api/state', undefined, b)).json as TableState;
+    expect(st.history[0].choices[0]).toMatchObject({ dish: '卤肉饭' });
+  });
+});

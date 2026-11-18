@@ -9,6 +9,7 @@ import type { Store } from './store/store.ts';
 import { sound } from './ui/audio.ts';
 import { $, installGrain, reduceMotion, storage, toast, wait } from './ui/dom.ts';
 import { Pack } from './ui/pack.ts';
+import { Reveal } from './ui/reveal.ts';
 import { Results } from './ui/results.ts';
 import { HistorySheet, PoolSheet, RoomSheet } from './ui/sheets.ts';
 import { Stack } from './ui/stack.ts';
@@ -57,12 +58,15 @@ async function choose(name: string) {
   else if (phase === 'results') results.markChosen(before, false);
 }
 
-async function settle(name: string) {
-  const next = await run(store.settle(name));
-  if (!next) return;
-  apply(next, true);
-  sound.bell(784);
-  toast(`签落：今天吃 ${name}`);
+async function toss() {
+  try {
+    apply(await store.toss(), true);
+  } catch (err) {
+    // the other person may have tossed a moment earlier; just catch up
+    toast((err as Error).message);
+    const next = await run(store.load());
+    if (next) apply(next, true);
+  }
 }
 
 async function reopen() {
@@ -72,9 +76,10 @@ async function reopen() {
 
 const tableHandlers: TableHandlers = {
   pick: name => void choose(name),
-  settle: name => void settle(name),
+  toss: () => void toss(),
   reopen: () => void reopen(),
-  invite: () => roomSheet.show(cur())
+  invite: () => roomSheet.show(cur()),
+  replay: () => void reveal.open(cur(), 'replay')
 };
 
 /* ---------------- ui pieces ---------------- */
@@ -87,6 +92,10 @@ const stack = new Stack(stackEl, $('#halo'), { onChange: setHud, onDone: showRes
 const results = new Results({ onPick: d => void choose(d.name) });
 const poolSheet = new PoolSheet(async pool => { apply(await store.savePool(pool), true); });
 const historySheet = new HistorySheet();
+const reveal = new Reveal({
+  toss,
+  adopt: name => { reveal.close(); void choose(name); }
+});
 const roomSheet = new RoomSheet({
   ...tableHandlers,
   async create(name) {
@@ -139,24 +148,51 @@ function announce(prev: TableState, next: TableState) {
   if (!partnerOf(prev)) { toast(`${partner.name} 入座了`); return; }
   const was = (s: TableState) => ({
     draw: s.today.draws.find(d => d.memberId === partner.id)?.at,
-    pick: s.today.choices.find(c => c.memberId === partner.id)?.dish
+    pick: s.today.choices.find(c => c.memberId === partner.id)
   });
   const a = was(prev);
   const b = was(next);
-  if (next.today.final && next.today.final.dish !== prev.today.final?.dish && next.today.final.by !== next.me.id) {
-    toast(next.today.final.by === 'match' ? `心有灵犀，你们都选了 ${next.today.final.dish}` : `今日定案：${next.today.final.dish}`);
+  const f = next.today.final;
+  if (f && f.dish !== prev.today.final?.dish && f.by !== next.me.id) {
+    toast(f.by === 'match' ? `心有灵犀，你们都选了 ${f.dish}` : `今日定案：${f.dish}`);
     sound.bell(784);
-  } else if (b.pick && b.pick !== a.pick) {
-    toast(`${partner.name} 定了 ${b.pick}`);
+  } else if (b.pick && b.pick.at !== a.pick?.at) {
+    toast(b.pick.sealed ? `${partner.name} 已封签，等你来开` : `${partner.name} 改选了 ${b.pick.dish}`);
   } else if (b.draw && b.draw !== a.draw) {
     toast(`${partner.name} 开了一包`);
   }
 }
 
+/**
+ * Plays the blind-pick reveal the first time this device sees both picks open,
+ * and the toss once the server has tossed. Returns true when it took over the screen.
+ */
+function maybeReveal(s: TableState): boolean {
+  const partner = partnerOf(s);
+  if (s.mode !== 'room' || !partner) return false;
+  const mine = s.today.choices.find(c => c.memberId === s.me.id);
+  const theirs = s.today.choices.find(c => c.memberId === partner.id);
+  if (!mine || !theirs || theirs.sealed) return false;
+  const key = `chowluck.seen.${s.room!.id}.${s.today.day}`;
+  const seen = storage.get<{ pair?: boolean; toss?: boolean }>(key, {});
+  if (s.today.final?.by === 'toss' && !seen.toss) {
+    storage.set(key, { pair: true, toss: true });
+    void reveal.open(s, 'toss', !seen.pair);
+    return true;
+  }
+  if (!seen.pair) {
+    storage.set(key, { ...seen, pair: true });
+    void reveal.open(s, 'pair');
+    return true;
+  }
+  return false;
+}
+
 function apply(next: TableState, fromMe = false) {
   const prev = state;
   state = next;
-  if (prev && !fromMe) announce(prev, next);
+  const revealed = maybeReveal(next);
+  if (prev && !fromMe && !revealed) announce(prev, next);
   renderChrome();
 }
 
@@ -182,7 +218,7 @@ function renderChrome() {
   const mate = $('#mateBtn');
   if (s.mode === 'local') mate.innerHTML = '<span class="mate"><span class="dot"></span>同桌</span>';
   else if (!partner) mate.innerHTML = '<span class="mate"><span class="dot wait"></span>等 TA 入座</span>';
-  else mate.innerHTML = `<span class="mate"><span class="dot on"></span>与 ${partner.name.replace(/[<>&]/g, '')}</span>`;
+  else mate.innerHTML = `<span class="mate"><span class="dot on"></span><span class="who">与 ${partner.name.replace(/[<>&]/g, '')}</span></span>`;
   mate.title = s.mode === 'room' ? verdict(s).text : '邀请 TA 一起抽';
 
   $('#poolN').textContent = String(allDishes(s.pool).filter(d => !s.pool.off.includes(d.name)).length);

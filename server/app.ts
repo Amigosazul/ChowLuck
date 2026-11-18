@@ -114,6 +114,13 @@ export function createApp({ repo, timeZone, now = () => new Date() }: AppOptions
     return c.json(repo.state(auth, today()));
   });
 
+  app.post('/api/toss', c => {
+    const auth = c.get('auth');
+    repo.toss(auth, today());
+    notify(auth.roomId);
+    return c.json(repo.state(auth, today()));
+  });
+
   app.delete('/api/final', c => {
     const auth = c.get('auth');
     repo.clearFinal(auth, today());

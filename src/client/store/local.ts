@@ -88,6 +88,8 @@ export class LocalStore implements Store {
 
   async settle(dish: string) { return this.choose(dish); }
 
+  async toss() { return this.state(); }
+
   async reopen() {
     delete this.day().choice;
     this.save();
